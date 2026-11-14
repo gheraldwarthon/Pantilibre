@@ -7,7 +7,8 @@
     "dev": "npm --prefix Pantilibre run dev",
     "build": "npm --prefix Pantilibre run build",
     "preview": "npm --prefix Pantilibre run preview",
-    "lint": "npm --prefix Pantilibre run lint"
+    "lint": "npm --prefix Pantilibre run lint",
+    "postinstall": "npm --prefix Pantilibre install"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0"
