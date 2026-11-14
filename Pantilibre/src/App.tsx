@@ -62,6 +62,8 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
 
   // Modals & overlays
   const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
@@ -182,6 +184,12 @@ export default function App() {
     setIsAuthModalOpen(true);
   };
 
+  // ============ Stories ============
+  const handleSelectStory = (storyId: string) => {
+    setActiveStoryId(storyId);
+    setIsStoryModalOpen(true);
+  };
+
   // ============ Navigation ============
   const handleOpenProfilePage = (creator: Creator) => {
     if (currentTab !== 'profile') setPreviousTab(currentTab);
@@ -252,20 +260,33 @@ export default function App() {
     showToast('Comentario añadido.', 'info');
   };
 
-  const handleUnlockGallery = (gallery: PrivateGallery) => {
+  const handleUnlockGallery = async (gallery: PrivateGallery) => {
     if (!user) return requireAuth(() => undefined);
     if (user.coins < gallery.coinPrice) {
       showToast('Saldo insuficiente de PantiCoins.', 'warning');
       setIsPlansModalOpen(true);
       return;
     }
-    setUser(prev => (prev ? {
-      ...prev,
-      coins: prev.coins - gallery.coinPrice,
-      unlockedGalleries: [...prev.unlockedGalleries, gallery.id]
-    } : prev));
-    setGalleries(prev => prev.map(g => (g.id === gallery.id ? { ...g, isLocked: false } : g)));
-    showToast(`¡Galería "${gallery.title}" desbloqueada con éxito!`);
+    try {
+      const { error: unlockError } = await supabase.from('gallery_unlocks').insert({
+        user_id: user.id,
+        gallery_id: gallery.id
+      });
+      if (unlockError) throw unlockError;
+      setUser(prev => (prev ? {
+        ...prev,
+        coins: prev.coins - gallery.coinPrice,
+        unlockedGalleries: [...prev.unlockedGalleries, gallery.id]
+      } : prev));
+      setGalleries(prev => prev.map(g => (g.id === gallery.id ? { ...g, isLocked: false } : g)));
+      showToast(`¡Galería "${gallery.title}" desbloqueada con éxito!`);
+    } catch (err) {
+      if ((err as { code?: string }).code === '23505') {
+        setGalleries(prev => prev.map(g => (g.id === gallery.id ? { ...g, isLocked: false } : g)));
+      } else {
+        showToast(err instanceof Error ? 'No se pudo desbloquear la galería' : 'Error', 'error');
+      }
+    }
   };
 
   const handleBuyStoreItem = (item: StoreItem) => {
@@ -280,12 +301,31 @@ export default function App() {
     showToast('¡Prenda adquirida! Se preparará el empaque al vacío con máxima discreción.');
   };
 
-  const handleSubscribeCreator = (creator: Creator) => {
+  const handleSubscribeCreator = async (creator: Creator) => {
     if (!user) return requireAuth(() => undefined);
-    if (!user.followingCreatorIds.includes(creator.id)) {
-      setUser(prev => (prev ? { ...prev, followingCreatorIds: [...prev.followingCreatorIds, creator.id] } : prev));
+    const isFollowing = user.followingCreatorIds.includes(creator.id);
+    try {
+      if (isFollowing) {
+        await supabase.from('subscriptions').delete()
+          .eq('user_id', user.id).eq('creator_id', creator.id);
+        setUser(prev => (prev ? {
+          ...prev,
+          followingCreatorIds: prev.followingCreatorIds.filter(id => id !== creator.id),
+          favoriteCreatorIds: (prev.favoriteCreatorIds || []).filter(id => id !== creator.id)
+        } : prev));
+        showToast(`Suscripción cancelada a ${creator.name}`, 'info');
+      } else {
+        await supabase.from('subscriptions').insert({ user_id: user.id, creator_id: creator.id });
+        setUser(prev => (prev ? {
+          ...prev,
+          followingCreatorIds: [...prev.followingCreatorIds, creator.id],
+          favoriteCreatorIds: [...(prev.favoriteCreatorIds || []), creator.id]
+        } : prev));
+        showToast(`¡Te has suscrito al club VIP de ${creator.name}!`);
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? 'No se pudo actualizar la suscripción' : 'Error', 'error');
     }
-    showToast(`¡Te has suscrito al club VIP de ${creator.name}!`);
   };
 
   // ============ Chat ============
@@ -448,11 +488,7 @@ export default function App() {
               galleries={galleries}
               user={activeUser}
               stories={stories}
-              onSelectStory={storyId => {
-                setActiveChatId(prev => prev);
-                const st = stories.find(s => s.id === storyId);
-                if (st) setViewedCreator(creators.find(c => c.id === st.creatorId) || null);
-              }}
+              onSelectStory={handleSelectStory}
               onExploreFeed={() => setCurrentTab('feed')}
               onExploreCategories={() => setCurrentTab('categories')}
               onExploreVIP={() => setCurrentTab('vip')}
@@ -470,10 +506,7 @@ export default function App() {
               user={activeUser}
               creators={creators}
               stories={stories}
-              onSelectStory={id => {
-                const st = stories.find(s => s.id === id);
-                if (st) setViewedCreator(creators.find(c => c.id === st.creatorId) || null);
-              }}
+              onSelectStory={handleSelectStory}
               onLikePost={handleLikePost}
               onAddComment={handleAddComment}
               onSendTip={handleSendTip}
@@ -505,10 +538,7 @@ export default function App() {
                 user={activeUser}
                 creators={creators}
                 stories={stories}
-                onSelectStory={id => {
-                  const st = stories.find(s => s.id === id);
-                  if (st) setViewedCreator(creators.find(c => c.id === st.creatorId) || null);
-                }}
+                onSelectStory={handleSelectStory}
                 onLikePost={handleLikePost}
                 onAddComment={handleAddComment}
                 onSendTip={handleSendTip}
@@ -553,7 +583,7 @@ export default function App() {
               storeItems={storeItems}
               allCreators={creators}
               stories={stories}
-              onSelectStory={() => undefined}
+              onSelectStory={handleSelectStory}
               onToggleFavorite={handleToggleFavorite}
               onTriggerNotificationForCreator={() => undefined}
               onBack={handleBackFromProfile}
@@ -589,7 +619,7 @@ export default function App() {
           onMarkAllAsRead={handleMarkAllNotificationsRead}
           onMarkAsRead={handleMarkNotificationRead}
           onDeleteNotification={handleDeleteNotification}
-          onSelectStory={() => undefined}
+          onSelectStory={handleSelectStory}
           onSelectNotificationTarget={handleSelectNotificationTarget}
           onTriggerSimulatedNotification={() => undefined}
           interactiveNotifications={Boolean(activeUser.interactiveNotifications)}
@@ -598,10 +628,10 @@ export default function App() {
 
         <StoryViewerModal
           stories={stories}
-          initialStoryId={undefined}
-          isOpen={currentTab === 'profile' && Boolean(viewedCreator)}
-          onClose={() => setCurrentTab(previousTab === 'profile' ? 'feed' : previousTab)}
-          onMarkViewed={() => undefined}
+          initialStoryId={activeStoryId || undefined}
+          isOpen={isStoryModalOpen}
+          onClose={() => setIsStoryModalOpen(false)}
+          onMarkViewed={storyId => setStories(prev => prev.map(s => (s.id === storyId ? { ...s, viewed: true } : s)))}
           onOpenChatWithCreator={(creatorId) => {
             const cr = creators.find(c => c.id === creatorId);
             if (cr) void handleOpenChatWithCreator(cr);
