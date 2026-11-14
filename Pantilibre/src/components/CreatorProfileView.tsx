@@ -60,7 +60,8 @@ import {
   QrCode2,
   CurrencyExchange,
   Send,
-  SecurityOutlined
+  SecurityOutlined,
+  OpenInNew
 } from '@mui/icons-material';
 import { Crown, Sparkles, Wallet, Smartphone, Landmark, ShieldCheck } from 'lucide-react';
 import { calculateItemDiscount, canAccessContent, getCreatorPaymentMethods, formatRelativeTime } from '../utils/platformLogic';
@@ -159,6 +160,24 @@ export const CreatorProfileView: React.FC<CreatorProfileViewProps> = ({
   const isFollowing = user.followingCreatorIds.includes(creator.id);
   const isFavorite = (user.favoriteCreatorIds || user.followingCreatorIds).includes(creator.id);
   const activeStory = stories?.find(s => s.creatorId === creator.id);
+
+  const socialLinks = [
+    { key: 'instagram', label: 'Instagram' },
+    { key: 'tiktok', label: 'TikTok' },
+    { key: 'twitter', label: 'X / Twitter' },
+    { key: 'onlyfans', label: 'OnlyFans' },
+    { key: 'web', label: 'Sitio web' }
+  ].flatMap(({ key, label }) => {
+    const value = creator.socialLinks?.[key];
+    if (typeof value !== 'string' || !value.trim()) return [];
+    try {
+      const url = new URL(value.trim());
+      if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) return [];
+      return [{ key, label, href: url.href }];
+    } catch {
+      return [];
+    }
+  });
 
   const creatorPosts = posts.filter(p => p.creatorId === creator.id);
   const creatorGalleries = galleries.filter(g => g.creatorId === creator.id);
@@ -722,6 +741,36 @@ export const CreatorProfileView: React.FC<CreatorProfileViewProps> = ({
           <Typography variant="body1" sx={{ color: '#3F2231', lineHeight: 1.7, mb: 2.5 }}>
             {creator.bio}
           </Typography>
+
+          {socialLinks.length > 0 && (
+            <Box component="section" aria-label="Redes sociales de la vendedora" sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" sx={{ color: '#2D1822', fontWeight: 700, mb: 1 }}>
+                Sígueme en mis redes
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {socialLinks.map(link => (
+                  <Button
+                    key={link.key}
+                    component="a"
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${link.label} de ${creator.name} (abre en otra pestaña)`}
+                    variant="outlined"
+                    endIcon={<OpenInNew sx={{ fontSize: 16 }} />}
+                    sx={{
+                      color: '#831843', bgcolor: '#FFF0F5', borderColor: '#FBCFE8',
+                      borderRadius: 3, px: 2, py: 1, fontWeight: 700, textTransform: 'none',
+                      '&:hover': { bgcolor: '#FCE7F3', borderColor: '#BE185D' },
+                      '&:focus-visible': { outline: '2px solid #831843', outlineOffset: 2 }
+                    }}
+                  >
+                    {link.label}
+                  </Button>
+                ))}
+              </Box>
+            </Box>
+          )}
 
           {/* Tags / Categories */}
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
