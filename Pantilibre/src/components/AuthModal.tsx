@@ -155,7 +155,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           return;
         }
         await sendPasswordReset(emailTrimmed);
-        setFeedback({ severity: 'success', text: 'Te enviamos un correo con un enlace para restablecer tu contraseña.' });
+        setFeedback({ severity: 'success', text: 'Si ese correo tiene una cuenta, recibirás un enlace para restablecer tu contraseña.' });
       } else if (modalTab === 'reset') {
         if (password.length < 8) {
           setFeedback({ severity: 'error', text: 'La nueva contraseña debe tener al menos 8 caracteres.' });
@@ -375,7 +375,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               disabled={modalTab === 'reset'}
               sx={{ bgcolor: '#FFFFFF', '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
-            <TextField
+            {modalTab !== 'forgot' && <TextField
               fullWidth size="small" label={modalTab === 'reset' ? 'Nueva contraseña' : 'Contraseña'}
               type={showPassword ? 'text' : 'password'} value={password}
               onChange={e => setPassword(e.target.value)} required
@@ -394,7 +394,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )
                 }
               }}
-            />
+            />}
 
             {(modalTab === 'register' || modalTab === 'login') && (
               <FormControlLabel

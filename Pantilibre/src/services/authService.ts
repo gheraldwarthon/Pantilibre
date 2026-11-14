@@ -11,54 +11,21 @@ export function getFriendlyAuthError(raw: string): string {
   if (raw.includes('duplicate key') || raw.includes('unique')) return 'Ese nombre de usuario ya está en uso. Elige otro.';
   if (raw.includes('Password')) return 'La contraseña debe tener al menos 6 caracteres.';
   if (raw.includes('rate limit') || raw.includes('rate_limit')) return 'Demasiados intentos. Espera un momento e inténtalo de nuevo.';
-  return raw;
+  if (raw.includes('Failed to fetch') || raw.toLowerCase().includes('network')) return 'No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.';
+  if (raw.includes('Cuenta creada.')) return 'La cuenta se creó, pero no se pudo iniciar la sesión automáticamente. Intenta iniciar sesión.';
+  return 'No se pudo completar la autenticación. Revisa tus datos e inténtalo de nuevo.';
 }
 
 export async function signUp(email: string, password: string, username: string, asCreator: boolean): Promise<UserProfile> {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username, display_name: username } }
+    options: { data: { username: username.trim().toLowerCase(), account_type: asCreator ? 'creator' : 'fan' } }
   });
   if (error) throw error;
   if (!data.user) throw new Error('No se pudo crear la cuenta');
   if (!data.session) {
     throw new Error('Cuenta creada. Inicia sesión para continuar.');
-  }
-  const safeUsername = username.toLowerCase().replace(/\s+/g, '_');
-  const { error: profileError } = await supabase.from('profiles').insert({
-    id: data.user.id,
-    username: safeUsername,
-    name: username,
-    avatar_url: '',
-    role: asCreator ? 'creator' : 'fan',
-    plan: 'free',
-    seller_tier: asCreator ? 'free' : null,
-    photo_limit: asCreator ? 2 : null,
-    coins: 100
-  });
-  if (profileError) throw profileError;
-  if (asCreator) {
-    const { error: creatorError } = await supabase.from('creators').insert({
-      id: data.user.id,
-      username: safeUsername,
-      name: username,
-      avatar_url: '',
-      cover_url: '',
-      badge: 'VIP',
-      is_verified: false,
-      is_online: false,
-      featured: false,
-      categories: ['lingerie'],
-      tags: [],
-      bio: '¡Nueva vendedora en Pantilibre! Pronto subiré mi contenido.',
-      location: '',
-      rating: 5.0,
-      review_count: 0,
-      subscribers_count: 0,
-      monthly_subscription_price: 4.5
-    });
-    if (creatorError) throw creatorError;
   }
   return fetchMyProfile();
 }
