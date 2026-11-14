@@ -10,7 +10,6 @@ import {
   Avatar,
   Button,
   Chip,
-  TextField,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -22,7 +21,6 @@ import {
   ChatBubble,
   MonetizationOn,
   Verified,
-  Send,
   Lock,
   Speed,
   AddPhotoAlternate,
@@ -30,9 +28,7 @@ import {
   FilterList,
   LocalOffer,
   FiberNew,
-  Star,
-  Checkroom,
-  SelfImprovement
+  Star
 } from '@mui/icons-material';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import { formatRelativeTime, getFeedFlankPhotos, type FeedFlankPhotoItem } from '../utils/platformLogic';
@@ -180,6 +176,7 @@ interface FeedSectionProps {
   onToggleDataSaver?: () => void;
   onToggleFavorite?: (creator: Creator) => void;
   onToggleInteractiveNotifications?: () => void;
+  onOpenComposer?: () => void;
 }
 
 export const FeedSection: React.FC<FeedSectionProps> = ({
@@ -192,20 +189,11 @@ export const FeedSection: React.FC<FeedSectionProps> = ({
   onSelectCreator,
   onOpenPlans,
   onOpenChatWithCreator,
-  onToggleDataSaver
+  onToggleDataSaver,
+  onOpenComposer
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'following' | 'vip' | 'media'>('all');
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
-  const [tipModalData, setTipModalData] = useState<{ creatorId: string; creatorName: string } | null>(null);
-  const [selectedTipAmount, setSelectedTipAmount] = useState<number>(50);
-  const [tipMessage, setTipMessage] = useState<string>('');
-  const [tipSentFeedback, setTipSentFeedback] = useState(false);
-
-  // Quick Post Draft state
-  const [newPostText, setNewPostText] = useState('');
-  const [newPostSuccess, setNewPostSuccess] = useState(false);
 
   const toggleComments = (postId: string) => {
     setExpandedComments(prev => ({ ...prev, [postId]: !prev[postId] }));
@@ -474,117 +462,125 @@ export const FeedSection: React.FC<FeedSectionProps> = ({
             </Box>
           </Box>
 
-          {/* ===== COMPOSER CARD ===== */}
-          {user.role === 'creator' || user.sellerTier ? (
-            /* Composer para vendedoras */
-            <Card elevation={0} sx={{ bgcolor: '#FFFFFF', border: '1.5px solid #FBCFE8', borderRadius: 4, overflow: 'hidden', boxShadow: '0 4px 18px rgba(224,93,132,0.08)' }}>
-              <Box sx={{ background: 'linear-gradient(135deg, #FFF0F5 0%, #FEF3C7 100%)', px: 2.5, pt: 2, pb: 1.5, borderBottom: '1px solid #FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* ===== PUBLICAR CONTENIDO (solo vendedoras) ===== */}
+          {(user.role === 'creator' || !!user.sellerTier) && (
+            <Card
+              elevation={0}
+              sx={{
+                bgcolor: '#FFFFFF',
+                border: '1.5px solid #FBCFE8',
+                borderRadius: 4,
+                overflow: 'hidden',
+                boxShadow: '0 4px 20px rgba(224,93,132,0.10)',
+              }}
+            >
+              {/* Header de identidad */}
+              <Box
+                sx={{
+                  background: 'linear-gradient(135deg, #FFF0F5 0%, #FEF3C7 100%)',
+                  px: 2.5,
+                  pt: 2,
+                  pb: 1.5,
+                  borderBottom: '1px solid #FCE7F3',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Avatar src={getOptimizedImageUrl(user.avatar, user.dataSaverMode, 'avatar')} sx={{ width: 42, height: 42, border: '2.5px solid #E05D84' }} />
+                  <Avatar
+                    src={getOptimizedImageUrl(user.avatar, user.dataSaverMode, 'avatar')}
+                    sx={{ width: 44, height: 44, border: '2.5px solid #E05D84' }}
+                  />
                   <Box>
                     <Typography sx={{ fontWeight: 900, color: '#2D1822', fontSize: 14, lineHeight: 1.2 }}>
                       {user.name}
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#BE185D', fontWeight: 700, fontSize: 11 }}>
-                      {user.sellerTier === 'vip' ? 'Vendedora VIP' : 'Vendedora FREE'} · {user.photoLimit !== null ? `${user.photoLimit} fotos máx.` : 'fotos ilimitadas'}
+                      {user.sellerTier === 'vip' ? 'Vendedora VIP' : 'Vendedora FREE'}
+                      {user.photoLimit !== null
+                        ? ` · hasta ${user.photoLimit} fotos por publicación`
+                        : ' · fotos ilimitadas'}
                     </Typography>
                   </Box>
                 </Box>
                 <Chip
-                  icon={<AutoAwesome sx={{ fontSize: 13, color: '#8A6D1E !important' }} />}
                   label={user.sellerTier === 'vip' ? 'VIP' : 'FREE'}
                   size="small"
-                  sx={{ bgcolor: user.sellerTier === 'vip' ? '#D4AF37' : '#FFF0F5', color: user.sellerTier === 'vip' ? '#2D1822' : '#BE185D', fontWeight: 900, fontSize: 10, height: 22 }}
-                />
-              </Box>
-              <Box sx={{ p: 2, display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Comparte tu prenda, set de fotos o mensaje secreto..."
-                  value={newPostText}
-                  onChange={e => setNewPostText(e.target.value)}
                   sx={{
-                    bgcolor: '#FFF8FA',
-                    '& .MuiOutlinedInput-root': { borderRadius: 3, fontSize: 13, '& fieldset': { borderColor: '#FCE7F3' } }
+                    bgcolor: user.sellerTier === 'vip' ? '#D4AF37' : '#FFF0F5',
+                    color: user.sellerTier === 'vip' ? '#2D1822' : '#BE185D',
+                    fontWeight: 900,
+                    fontSize: 10,
+                    height: 22,
                   }}
                 />
+              </Box>
+
+              {/* Botón principal de publicación */}
+              <Box sx={{ px: 2.5, pt: 2, pb: 1.5 }}>
                 <Button
+                  fullWidth
                   variant="contained"
-                  disabled={!newPostText.trim()}
-                  onClick={() => { setNewPostSuccess(true); setNewPostText(''); setTimeout(() => setNewPostSuccess(false), 2500); }}
-                  sx={{ bgcolor: '#E05D84', color: '#FFF', fontWeight: 800, borderRadius: 2.5, px: 2, minWidth: 42, textTransform: 'none', '&:hover': { bgcolor: '#BE185D' } }}
+                  startIcon={<AddPhotoAlternate />}
+                  onClick={onOpenComposer}
+                  sx={{
+                    background: 'linear-gradient(135deg, #E05D84 0%, #BE185D 100%)',
+                    color: '#FFFFFF',
+                    fontWeight: 900,
+                    fontSize: 15,
+                    borderRadius: 3.5,
+                    py: 1.4,
+                    textTransform: 'none',
+                    boxShadow: '0 6px 20px rgba(190,24,93,0.28)',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #BE185D 0%, #9D174D 100%)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 10px 28px rgba(190,24,93,0.36)',
+                    },
+                  }}
                 >
-                  <Send sx={{ fontSize: 16 }} />
+                  Publicar fotos
                 </Button>
               </Box>
-              {/* Accesos rápidos de publicación */}
-              <Box sx={{ px: 2, pb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+
+              {/* Tipos de publicación rápida */}
+              <Box
+                sx={{
+                  px: 2.5,
+                  pb: 2,
+                  display: 'flex',
+                  gap: 0.8,
+                  flexWrap: 'wrap',
+                }}
+              >
                 {[
-                  { icon: <AddPhotoAlternate sx={{ fontSize: 14 }} />, label: 'Subir fotos', color: '#BE185D', bg: '#FFF0F5' },
-                  { icon: <Checkroom sx={{ fontSize: 14 }} />, label: 'Prenda usada', color: '#7C3AED', bg: '#EDE9FE' },
-                  { icon: <FiberNew sx={{ fontSize: 14 }} />, label: 'Novedad', color: '#059669', bg: '#D1FAE5' },
-                  { icon: <Lock sx={{ fontSize: 14 }} />, label: 'Contenido VIP', color: '#D97706', bg: '#FEF3C7' },
-                  { icon: <SelfImprovement sx={{ fontSize: 14 }} />, label: 'Set íntimo', color: '#E05D84', bg: '#FCE7F3' },
-                ].map(action => (
+                  { label: 'Set de Lencería', color: '#BE185D', bg: '#FFF0F5' },
+                  { label: 'Ropa Usada', color: '#7C3AED', bg: '#EDE9FE' },
+                  { label: 'Conjunto Completo', color: '#D97706', bg: '#FEF3C7' },
+                  { label: 'Pies & Medias', color: '#0F766E', bg: '#CCFBF1' },
+                  { label: 'Contenido VIP', color: '#9D174D', bg: '#FCE7F3' },
+                ].map(tag => (
                   <Chip
-                    key={action.label}
-                    icon={React.cloneElement(action.icon, { sx: { fontSize: 14, color: `${action.color} !important` } })}
-                    label={action.label}
+                    key={tag.label}
+                    label={tag.label}
                     size="small"
-                    onClick={() => setNewPostText(prev => prev ? `${prev} #${action.label.toLowerCase().replace(/ /g, '_')}` : `#${action.label.toLowerCase().replace(/ /g, '_')} `)}
+                    onClick={onOpenComposer}
                     sx={{
                       fontWeight: 700,
                       fontSize: 11,
                       height: 26,
-                      bgcolor: action.bg,
-                      color: action.color,
+                      bgcolor: tag.bg,
+                      color: tag.color,
                       cursor: 'pointer',
-                      border: `1px solid ${action.color}22`,
+                      border: `1px solid ${tag.color}33`,
                       transition: 'all 0.15s',
-                      '&:hover': { bgcolor: action.color, color: '#FFF', transform: 'translateY(-1px)' }
+                      '&:hover': { bgcolor: tag.color, color: '#FFF', transform: 'translateY(-1px)' },
                     }}
                   />
                 ))}
               </Box>
-              {newPostSuccess && (
-                <Box sx={{ px: 2, pb: 2 }}>
-                  <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700 }}>
-                    Publicado en el muro. Tus fans ya pueden verlo.
-                  </Typography>
-                </Box>
-              )}
-            </Card>
-          ) : (
-            /* Composer simplificado para fans */
-            <Card elevation={0} sx={{ bgcolor: '#FFFFFF', border: '1px solid #FCE7F3', borderRadius: 4, p: 2, boxShadow: '0 2px 12px rgba(224,93,132,0.05)' }}>
-              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                <Avatar src={getOptimizedImageUrl(user.avatar, user.dataSaverMode, 'avatar')} sx={{ width: 40, height: 40, border: '1.5px solid #FBCFE8' }} />
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Pide una prenda personalizada o escribe a tus vendedoras favoritas..."
-                  value={newPostText}
-                  onChange={e => setNewPostText(e.target.value)}
-                  sx={{
-                    bgcolor: '#FFF8FA',
-                    '& .MuiOutlinedInput-root': { borderRadius: 3, fontSize: 13, '& fieldset': { borderColor: '#FCE7F3' } }
-                  }}
-                />
-                <Button
-                  variant="contained"
-                  disabled={!newPostText.trim()}
-                  onClick={() => { setNewPostSuccess(true); setNewPostText(''); setTimeout(() => setNewPostSuccess(false), 2500); }}
-                  sx={{ bgcolor: '#BE185D', color: '#FFF', fontWeight: 800, borderRadius: 2.5, px: 2, minWidth: 42, textTransform: 'none', '&:hover': { bgcolor: '#9D174D' } }}
-                >
-                  <Send sx={{ fontSize: 16 }} />
-                </Button>
-              </Box>
-              {newPostSuccess && (
-                <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, mt: 1, display: 'block' }}>
-                  Petición enviada. Las vendedoras te responderán al chat privado.
-                </Typography>
-              )}
             </Card>
           )}
 

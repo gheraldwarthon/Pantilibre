@@ -537,6 +537,7 @@ export default function App() {
               onToggleDataSaver={handleToggleDataSaver}
               onToggleFavorite={handleToggleFavorite}
               onToggleInteractiveNotifications={handleToggleInteractiveNotifications}
+              onOpenComposer={() => setIsComposerOpen(true)}
             />
           )}
 
@@ -569,6 +570,7 @@ export default function App() {
                 onToggleDataSaver={handleToggleDataSaver}
                 onToggleFavorite={handleToggleFavorite}
                 onToggleInteractiveNotifications={handleToggleInteractiveNotifications}
+                onOpenComposer={() => setIsComposerOpen(true)}
               />
             </Box>
           )}
