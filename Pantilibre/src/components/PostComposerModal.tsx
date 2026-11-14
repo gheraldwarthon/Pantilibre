@@ -41,6 +41,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({ isOpen, on
   const [isLocked, setIsLocked] = useState(false);
   const [coinPrice, setCoinPrice] = useState(10);
   const [publishing, setPublishing] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const photoLimit = user.photoLimit ?? null;
@@ -82,6 +83,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({ isOpen, on
       setImageUrls([]);
       setIsLocked(false);
       setCoinPrice(10);
+      setReviewing(false);
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al publicar';
@@ -149,11 +151,11 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({ isOpen, on
               </Button>
             </Box>
             {imageUrls.length > 0 && (
-              <Box sx={{ display: 'flex', gap: 1, mt: 1.5, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2, mt: 2 }}>
                 {imageUrls.map((url, idx) => (
                   <Box key={`${url}-${idx}`} sx={{ position: 'relative' }}>
-                    <Box component="img" src={url} sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 3, border: '2px solid #FBCFE8' }} />
-                    <IconButton size="small" onClick={() => removeUrl(idx)}
+                    <Box component="img" src={url} alt={`Vista previa de la foto ${idx + 1}`} sx={{ width: '100%', height: 240, objectFit: 'contain', bgcolor: '#FFF0F5', borderRadius: 3, display: 'block' }} />
+                    <IconButton aria-label={`Quitar foto ${idx + 1}`} size="small" onClick={() => removeUrl(idx)}
                       sx={{ position: 'absolute', top: -6, right: -6, bgcolor: '#BE185D', color: '#FFF', '&:hover': { bgcolor: '#9D174D' }, width: 22, height: 22 }}>
                       <Close sx={{ fontSize: 14 }} />
                     </IconButton>
@@ -234,16 +236,50 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({ isOpen, on
                 fullWidth
                 variant="contained"
                 disabled={publishing || !user.sellerTier}
-                onClick={() => void handlePublish()}
+                onClick={() => {
+                  if (!content.trim() && imageUrls.length === 0) {
+                    setError('Escribe algo o añade al menos una foto.');
+                    return;
+                  }
+                  setError(null);
+                  setReviewing(true);
+                }}
                 startIcon={<SendIcon />}
                 sx={{ py: 1.3, borderRadius: 3, fontWeight: 900, bgcolor: '#E05D84', color: '#FFF', '&:hover': { bgcolor: '#BE185D' } }}
               >
-                {publishing ? 'Publicando...' : 'Publicar en el muro'}
+                {publishing ? 'Publicando...' : 'Revisar publicación'}
               </Button>
             </span>
           </Tooltip>
         </Box>
       </DialogContent>
+      <Dialog open={isOpen && reviewing} onClose={() => !publishing && setReviewing(false)} maxWidth="sm" fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 4, bgcolor: '#FFF8FA' } } }}>
+        <DialogContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ color: '#2D1822', fontWeight: 700 }}>Vista previa de tu publicación</Typography>
+          <Typography sx={{ color: '#7A5868', mb: 2 }}>Revisa tus fotos antes de compartirlas en el muro.</Typography>
+          {content.trim() && <Typography sx={{ color: '#2D1822', whiteSpace: 'pre-wrap', mb: 2 }}>{content.trim()}</Typography>}
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            {imageUrls.map((url, idx) => (
+              <Box key={`${url}-${idx}`}>
+                <Box component="img" src={url} alt={`Foto ${idx + 1} de la publicación`}
+                  sx={{ width: '100%', maxHeight: 440, objectFit: 'contain', display: 'block', bgcolor: '#FFF0F5', borderRadius: 2 }} />
+                <Typography variant="caption" sx={{ color: '#7A5868' }}>Foto {idx + 1} de {imageUrls.length}</Typography>
+              </Box>
+            ))}
+          </Box>
+          <Chip label={isLocked ? `Contenido bloqueado · ${coinPrice} PantiCoins` : 'Publicación gratuita'}
+            sx={{ mt: 2, bgcolor: '#FCE7F3', color: '#9D174D' }} />
+          {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+          <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
+            <Button disabled={publishing} onClick={() => setReviewing(false)} sx={{ color: '#9D174D' }}>Volver a editar</Button>
+            <Button variant="contained" disabled={publishing || !user.sellerTier} onClick={() => void handlePublish()}
+              startIcon={<SendIcon />} sx={{ bgcolor: '#BE185D', color: '#FFF', '&:hover': { bgcolor: '#9D174D' } }}>
+              {publishing ? 'Publicando...' : 'Confirmar publicación'}
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };
