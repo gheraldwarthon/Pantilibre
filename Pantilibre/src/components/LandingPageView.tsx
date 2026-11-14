@@ -12,7 +12,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   Rating,
-  Tooltip
+  Tooltip,
+  Divider
 } from '@mui/material';
 import {
   AutoAwesome,
