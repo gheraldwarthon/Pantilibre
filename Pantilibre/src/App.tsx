@@ -18,6 +18,7 @@ import { RealTimeNotificationToast } from './components/RealTimeNotificationToas
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { AdminPanel } from './components/AdminPanel';
 import { PostComposerModal } from './components/PostComposerModal';
+import { LegalPagesView, LegalPage } from './components/LegalPagesView';
 
 import {
   fetchCreators,
@@ -44,12 +45,13 @@ import type {
   AppNotification
 } from './types';
 
-type Tab = 'landing' | 'feed' | 'categories' | 'vip' | 'chat' | 'profile' | 'admin';
+type Tab = 'landing' | 'feed' | 'categories' | 'vip' | 'chat' | 'profile' | 'admin' | 'terms' | 'privacy';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<Tab>('landing');
   const [viewedCreator, setViewedCreator] = useState<Creator | null>(null);
   const [previousTab, setPreviousTab] = useState<Tab>('landing');
+  const [legalPage, setLegalPage] = useState<LegalPage>('terms');
 
   const [bootLoading, setBootLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -200,6 +202,18 @@ export default function App() {
 
   const handleBackFromProfile = () => {
     setCurrentTab(previousTab === 'profile' ? 'feed' : previousTab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenLegal = (page: LegalPage) => {
+    setPreviousTab(currentTab);
+    setLegalPage(page);
+    setCurrentTab(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackFromLegal = () => {
+    setCurrentTab(previousTab === 'terms' || previousTab === 'privacy' ? 'landing' : previousTab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -497,6 +511,7 @@ export default function App() {
               onUnlockGallery={handleUnlockGallery}
               onOpenPlans={() => setIsPlansModalOpen(true)}
               onOpenAuth={mode => { setAuthModalTab(mode === 'register' ? 'register' : 'login'); setIsAuthModalOpen(true); }}
+              onOpenLegal={handleOpenLegal}
             />
           )}
 
@@ -571,6 +586,14 @@ export default function App() {
               onSendTipInChat={handleSendTipInChat}
               onUnlockChatPhoto={handleUnlockChatPhoto}
               onOpenPlans={() => setIsPlansModalOpen(true)}
+            />
+          )}
+
+          {(currentTab === 'terms' || currentTab === 'privacy') && (
+            <LegalPagesView
+              page={currentTab}
+              onBack={handleBackFromLegal}
+              onSwitchPage={page => { setLegalPage(page); setCurrentTab(page); }}
             />
           )}
 

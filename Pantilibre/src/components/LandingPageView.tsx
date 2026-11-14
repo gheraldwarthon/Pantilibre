@@ -51,6 +51,7 @@ interface LandingPageViewProps {
   onUnlockGallery: (gallery: PrivateGallery) => void;
   onOpenPlans: () => void;
   onOpenAuth: (mode?: 'login' | 'register') => void;
+  onOpenLegal: (page: 'terms' | 'privacy') => void;
 }
 
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
@@ -66,7 +67,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onOpenChatWithCreator,
   onUnlockGallery,
   onOpenPlans,
-  onOpenAuth
+  onOpenAuth,
+  onOpenLegal
 }) => {
   const featuredVip = creators.filter(c => c.featured);
   const popularGalleries = galleries.slice(0, 4);
@@ -1689,6 +1691,21 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               sx={{ cursor: 'pointer', '&:hover': { color: '#E05D84' }, fontWeight: 600, fontSize: 13 }}
             >
               Registro & Roles
+            </Typography>
+            <Divider orientation="vertical" flexItem sx={{ bgcolor: '#FCE7F3' }} />
+            <Typography
+              component="span"
+              onClick={() => onOpenLegal('terms')}
+              sx={{ cursor: 'pointer', '&:hover': { color: '#E05D84' }, fontWeight: 600, fontSize: 13 }}
+            >
+              Términos y Condiciones
+            </Typography>
+            <Typography
+              component="span"
+              onClick={() => onOpenLegal('privacy')}
+              sx={{ cursor: 'pointer', '&:hover': { color: '#E05D84' }, fontWeight: 600, fontSize: 13 }}
+            >
+              Política de Privacidad
             </Typography>
           </Box>
 

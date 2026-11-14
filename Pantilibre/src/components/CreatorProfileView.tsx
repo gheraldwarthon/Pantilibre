@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Creator,
   Post,
@@ -64,9 +64,10 @@ import {
 } from '@mui/icons-material';
 import { Crown, Sparkles, Wallet, Smartphone, Landmark, ShieldCheck } from 'lucide-react';
 import { calculateItemDiscount, canAccessContent, getCreatorPaymentMethods, formatRelativeTime } from '../utils/platformLogic';
-import { CREATOR_REVIEWS } from '../data/mockData';
+import { CREATOR_REVIEWS, CREATORS } from '../data/mockData';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
-import { CreatorPaymentMethod } from '../types';
+import { fetchCreatorReviews } from '../services/dataService';
+import { CreatorPaymentMethod, CreatorReview } from '../types';
 
 interface CreatorProfileViewProps {
   creator: Creator;
@@ -162,8 +163,26 @@ export const CreatorProfileView: React.FC<CreatorProfileViewProps> = ({
   const creatorPosts = posts.filter(p => p.creatorId === creator.id);
   const creatorGalleries = galleries.filter(g => g.creatorId === creator.id);
   const creatorStoreItems = storeItems.filter(i => i.creatorId === creator.id);
-  const creatorReviews = CREATOR_REVIEWS.filter(r => r.creatorId === creator.id);
   const similarCreators = allCreators.filter(c => c.id !== creator.id).slice(0, 3);
+
+  const [liveReviews, setLiveReviews] = useState<CreatorReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setReviewsLoading(true);
+    fetchCreatorReviews(creator.id)
+      .then(rows => { if (mounted) setLiveReviews(rows); })
+      .catch(() => { if (mounted) setLiveReviews([]); })
+      .finally(() => { if (mounted) setReviewsLoading(false); });
+    return () => { mounted = false; };
+  }, [creator.id]);
+
+  const mockCreator = CREATORS.find(c => c.username === creator.username);
+  const fallbackReviews = mockCreator
+    ? CREATOR_REVIEWS.filter(r => r.creatorId === mockCreator.id)
+    : [];
+  const creatorReviews = liveReviews.length > 0 ? liveReviews : fallbackReviews;
 
   const handleShareProfile = () => {
     if (navigator.clipboard) {
@@ -2105,6 +2124,15 @@ export const CreatorProfileView: React.FC<CreatorProfileViewProps> = ({
             </Card>
 
             {/* Individual Reviews */}
+            {reviewsLoading ? (
+              <Typography variant="body2" sx={{ color: '#9D7387', textAlign: 'center', py: 4 }}>
+                Cargando reseñas verificadas...
+              </Typography>
+            ) : creatorReviews.length === 0 ? (
+              <Typography variant="body2" sx={{ color: '#9D7387', textAlign: 'center', py: 4 }}>
+                Aún no hay reseñas para esta creadora.
+              </Typography>
+            ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {creatorReviews.map(rev => (
                 <Card
@@ -2157,6 +2185,7 @@ export const CreatorProfileView: React.FC<CreatorProfileViewProps> = ({
                 </Card>
               ))}
             </Box>
+            )}
           </Box>
         )}
 

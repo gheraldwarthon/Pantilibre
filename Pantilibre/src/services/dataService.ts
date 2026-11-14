@@ -4,6 +4,7 @@ import type {
   CategoryType,
   ChatConversation,
   Creator,
+  CreatorReview,
   CreatorStory,
   Post,
   PrivateGallery,
@@ -267,18 +268,14 @@ export function mapNotification(db: {
   };
 }
 
-const CREATOR_SELECT = '*, profiles!inner(username, name, avatar_url, seller_tier, photo_limit)';
-
 export async function fetchCreators(): Promise<Creator[]> {
   const { data, error } = await supabase
     .from('creators')
-    .select('*, profiles!inner(username, name, avatar_url, seller_tier, photo_limit)');
+    .select('*')
+    .order('featured', { ascending: false })
+    .order('subscribers_count', { ascending: false });
   if (error) throw error;
-  return (data as unknown as Array<DbCreator & { profiles: DbProfile }>).map(row => {
-    const { profiles, ...rest } = row as unknown as DbCreator & { profiles: DbProfile };
-    void profiles;
-    return mapCreator(rest);
-  });
+  return (data as unknown as DbCreator[]).map(row => mapCreator(row));
 }
 
 export async function fetchFeed(): Promise<{ posts: Post[]; creators: Creator[] }> {
@@ -334,6 +331,47 @@ export async function fetchStoreItems(): Promise<StoreItem[]> {
   return (data as unknown as DbStoreItem[])
     .filter(i => creatorMap.has(i.creator_id))
     .map(i => mapStoreItem(i, creatorMap.get(i.creator_id)!));
+}
+
+export interface DbCreatorReview {
+  id: string;
+  creator_id: string;
+  buyer_name: string;
+  buyer_avatar: string;
+  is_vip_buyer: boolean;
+  rating: number;
+  item_purchased: string;
+  comment: string;
+  verified_purchase: boolean;
+  likes_count: number;
+  created_at: string;
+}
+
+export function mapCreatorReview(db: DbCreatorReview): CreatorReview {
+  return {
+    id: db.id,
+    creatorId: db.creator_id,
+    buyerName: db.buyer_name,
+    buyerAvatar: db.buyer_avatar,
+    isVipBuyer: db.is_vip_buyer,
+    rating: Number(db.rating) || 5,
+    date: timeAgo(db.created_at),
+    itemPurchased: db.item_purchased,
+    comment: db.comment,
+    verifiedPurchase: db.verified_purchase,
+    likesCount: db.likes_count
+  };
+}
+
+export async function fetchCreatorReviews(creatorId: string): Promise<CreatorReview[]> {
+  const { data, error } = await supabase
+    .from('creator_reviews')
+    .select('*')
+    .eq('creator_id', creatorId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return (data as unknown as DbCreatorReview[]).map(mapCreatorReview);
 }
 
 export async function fetchStories(): Promise<CreatorStory[]> {
