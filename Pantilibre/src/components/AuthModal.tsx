@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { PantilibreLogo } from './PantilibreLogo';
-import { signIn, signUp } from '../services/authService';
+import { signIn, signUp, getFriendlyAuthError } from '../services/authService';
 import {
   Dialog,
   DialogContent,
@@ -107,14 +107,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Error de autenticación';
-      const friendly = raw.includes('Invalid login credentials')
-        ? 'Correo o contraseña incorrectos.'
-        : raw.includes('already registered')
-        ? 'Ese correo ya está registrado. Inicia sesión.'
-        : raw.includes('Password')
-        ? 'La contraseña debe tener al menos 6 caracteres.'
-        : raw;
-      setFeedback({ severity: 'error', text: friendly });
+      setFeedback({ severity: 'error', text: getFriendlyAuthError(raw) });
     } finally {
       setBusy(false);
     }
@@ -248,6 +241,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <TextField
               fullWidth size="small" label="Contraseña" type="password" value={password}
               onChange={e => setPassword(e.target.value)} required
+              helperText={modalTab === 'register' ? 'Mínimo 8 caracteres con mayúsculas, números y símbolos (ej. Panti!2026).' : undefined}
               sx={{ bgcolor: '#FFFFFF', '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
 
