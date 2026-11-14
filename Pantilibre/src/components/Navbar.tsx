@@ -27,7 +27,9 @@ import {
   Category,
   Home as HomeIcon,
   Notifications,
-  NotificationsActive
+  NotificationsActive,
+  AddPhotoAlternate,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import { Crown } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -41,7 +43,11 @@ interface NavbarProps {
   onOpenNotifications?: (event: React.MouseEvent<HTMLElement>) => void;
   onOpenPlans: () => void;
   onOpenAuth: () => void;
-  onOpenProfile: () => void;
+  onOpenProfile?: () => void;
+  onOpenDataSaver?: () => void;
+  onOpenAdmin?: () => void;
+  onOpenComposer?: () => void;
+  onLogout?: () => void;
   onToggleDataSaver?: () => void;
 }
 
@@ -55,6 +61,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPlans,
   onOpenAuth,
   onOpenProfile,
+  onOpenAdmin,
+  onOpenComposer,
+  onLogout,
   onToggleDataSaver
 }) => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -223,6 +232,39 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Zone 3: Coin balance, Profile & Mobile Hamburger */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexShrink: 0 }}>
+          {/* Composer (sellers) */}
+          {onOpenComposer && (
+            <Tooltip title="Nueva publicación">
+              <IconButton
+                onClick={onOpenComposer}
+                size="small"
+                sx={{
+                  color: '#FFF', bgcolor: '#E05D84', borderRadius: '50%', p: 0.85,
+                  transition: 'all 0.2s', '&:hover': { bgcolor: '#BE185D' }
+                }}
+              >
+                <AddPhotoAlternate sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* Admin panel button */}
+          {onOpenAdmin && (
+            <Tooltip title="Centro de Control (Admin)">
+              <IconButton
+                onClick={onOpenAdmin}
+                size="small"
+                sx={{
+                  color: '#8A6D1E', bgcolor: '#FFFDF0', border: '1px solid #E5C378',
+                  borderRadius: '50%', p: 0.85, transition: 'all 0.2s',
+                  '&:hover': { bgcolor: '#FFF9E0', borderColor: '#D4AF37' }
+                }}
+              >
+                <AdminPanelSettings sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+
           {/* Notifications Bell Icon Button */}
           {onOpenNotifications && (
             <Tooltip title="Notificaciones en vivo">

@@ -176,12 +176,16 @@ export interface ChatConversation {
   messages: ChatMessage[];
 }
 
+export type SellerTier = 'free' | 'vip';
+
 export interface UserProfile {
   id: string;
   name: string;
   username: string;
   avatar: string;
-  role: 'fan' | 'creator';
+  role: 'fan' | 'creator' | 'admin';
+  sellerTier?: SellerTier;
+  photoLimit?: number | null;
   plan: 'free' | 'gold_vip' | 'black_diamond';
   coins: number;
   unlockedGalleries: string[];
