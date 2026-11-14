@@ -1,0 +1,15 @@
+{
+  "name": "project",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix Pantilibre run dev",
+    "build": "npm --prefix Pantilibre run build",
+    "preview": "npm --prefix Pantilibre run preview",
+    "lint": "npm --prefix Pantilibre run lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0"
+  }
+}
