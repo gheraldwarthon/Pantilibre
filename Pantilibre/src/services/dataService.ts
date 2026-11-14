@@ -544,6 +544,26 @@ export async function updateSellerControl(
   }
 }
 
+export async function updateMyProfile(changes: {
+  name?: string;
+  username?: string;
+  avatarUrl?: string;
+  dataSaverMode?: boolean;
+  interactiveNotifications?: boolean;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Inicia sesión para editar tu perfil');
+  const update: Record<string, unknown> = {};
+  if (changes.name !== undefined) update.name = changes.name;
+  if (changes.username !== undefined) update.username = changes.username.toLowerCase().replace(/\s+/g, '_');
+  if (changes.avatarUrl !== undefined) update.avatar_url = changes.avatarUrl;
+  if (changes.dataSaverMode !== undefined) update.data_saver_mode = changes.dataSaverMode;
+  if (changes.interactiveNotifications !== undefined) update.interactive_notifications = changes.interactiveNotifications;
+  if (Object.keys(update).length === 0) return;
+  const { error } = await supabase.from('profiles').update(update).eq('id', user.id);
+  if (error) throw error;
+}
+
 export async function fetchAllProfiles(): Promise<DbProfile[]> {
   const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
   if (error) throw error;

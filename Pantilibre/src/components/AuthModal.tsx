@@ -52,7 +52,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [asCreator, setAsCreator] = useState(false);
-  const [isAdultConfirmed, setIsAdultConfirmed] = useState(true);
+  const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ severity: 'error' | 'success'; text: string } | null>(null);
 
@@ -70,19 +70,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setFeedback({ severity: 'error', text: 'Debes confirmar ser mayor de 18 años para acceder a Pantilibre.' });
       return;
     }
+    const emailTrimmed = email.trim();
+    if (modalTab === 'register') {
+      const usernameTrimmed = username.trim();
+      if (usernameTrimmed.length < 3 || usernameTrimmed.length > 20) {
+        setFeedback({ severity: 'error', text: 'El nombre de usuario debe tener entre 3 y 20 caracteres.' });
+        return;
+      }
+      if (!/^[a-zA-Z0-9._]+$/.test(usernameTrimmed)) {
+        setFeedback({ severity: 'error', text: 'El nombre de usuario solo puede contener letras, números, puntos y guiones bajos.' });
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed)) {
+        setFeedback({ severity: 'error', text: 'Escribe un correo electrónico válido.' });
+        return;
+      }
+      if (password.length < 6) {
+        setFeedback({ severity: 'error', text: 'La contraseña debe tener al menos 6 caracteres.' });
+        return;
+      }
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed)) {
+      setFeedback({ severity: 'error', text: 'Escribe un correo electrónico válido.' });
+      return;
+    }
     setBusy(true);
     setFeedback(null);
     try {
       if (modalTab === 'register') {
-        if (!username.trim()) {
-          setFeedback({ severity: 'error', text: 'Elige un nombre de usuario.' });
-          return;
-        }
-        const user = await signUp(email.trim(), password, username.trim(), asCreator);
+        const user = await signUp(emailTrimmed, password, username.trim(), asCreator);
         onLoginAs(user);
         onClose();
       } else {
-        const user = await signIn(email.trim(), password);
+        const user = await signIn(emailTrimmed, password);
         onLoginAs(user);
         onClose();
       }
@@ -218,11 +237,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Quiero vender (creadora)
                   </Button>
                 </Box>
-                {asCreator && (
-                  <Alert severity="info" sx={{ borderRadius: 2, fontSize: 11.5 }}>
-                    Tu cuenta de vendedora empieza en plan <strong>FREE</strong> (2 fotos por publicación). El administrador puede promoverte a VIP con más capacidad desde el Centro de Control.
-                  </Alert>
-                )}
               </>
             )}
 

@@ -18,6 +18,7 @@ import { RealTimeNotificationToast } from './components/RealTimeNotificationToas
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { AdminPanel } from './components/AdminPanel';
 import { PostComposerModal } from './components/PostComposerModal';
+import { ProfileSettingsView } from './components/ProfileSettingsView';
 import { LegalPagesView, LegalPage } from './components/LegalPagesView';
 
 import {
@@ -45,7 +46,7 @@ import type {
   AppNotification
 } from './types';
 
-type Tab = 'landing' | 'feed' | 'categories' | 'vip' | 'chat' | 'profile' | 'admin' | 'terms' | 'privacy';
+type Tab = 'landing' | 'feed' | 'categories' | 'vip' | 'chat' | 'profile' | 'account_settings' | 'admin' | 'terms' | 'privacy';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<Tab>('landing');
@@ -485,6 +486,7 @@ export default function App() {
           onOpenPlans={() => setIsPlansModalOpen(true)}
           onOpenAuth={() => handleOpenAuth(user ? 'account' : 'login')}
           onOpenProfile={() => handleOpenAuth(user ? 'account' : 'login')}
+          onOpenAccountSettings={user ? () => setCurrentTab('account_settings') : undefined}
           onToggleDataSaver={handleToggleDataSaver}
           onOpenAdmin={user?.role === 'admin' ? () => setCurrentTab('admin') : undefined}
           onOpenComposer={user?.sellerTier ? () => setIsComposerOpen(true) : undefined}
@@ -594,6 +596,19 @@ export default function App() {
               page={currentTab}
               onBack={handleBackFromLegal}
               onSwitchPage={page => { setLegalPage(page); setCurrentTab(page); }}
+            />
+          )}
+
+          {currentTab === 'account_settings' && user && (
+            <ProfileSettingsView
+              user={user}
+              onBack={() => { setCurrentTab('landing'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onUpdated={updated => {
+                setUser(updated);
+                showToast('Perfil actualizado.');
+              }}
+              onLogout={() => void handleLogout()}
+              onOpenPlans={() => setIsPlansModalOpen(true)}
             />
           )}
 

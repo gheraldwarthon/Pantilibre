@@ -32,6 +32,7 @@ import {
   AdminPanelSettings
 } from '@mui/icons-material';
 import { Crown } from 'lucide-react';
+import { SettingsApplications } from '@mui/icons-material';
 import { UserProfile } from '../types';
 
 interface NavbarProps {
@@ -44,6 +45,7 @@ interface NavbarProps {
   onOpenPlans: () => void;
   onOpenAuth: () => void;
   onOpenProfile?: () => void;
+  onOpenAccountSettings?: () => void;
   onOpenDataSaver?: () => void;
   onOpenAdmin?: () => void;
   onOpenComposer?: () => void;
@@ -61,6 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPlans,
   onOpenAuth,
   onOpenProfile,
+  onOpenAccountSettings,
   onOpenAdmin,
   onOpenComposer,
   onLogout,
@@ -360,6 +363,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </Box>
 
+          {onOpenAccountSettings && (
+            <Tooltip title="Configuración de perfil">
+              <IconButton
+                onClick={onOpenAccountSettings}
+                sx={{ color: isDark ? '#FBCFE8' : '#E05D84', display: { xs: 'none', sm: 'flex' } }}
+                aria-label="Configuración de perfil"
+              >
+                <SettingsApplications sx={{ fontSize: 22 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+
           {/* Mobile Drawer Hamburger */}
           <IconButton
             onClick={() => setMobileDrawerOpen(true)}
@@ -472,6 +487,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               </ListItemIcon>
               <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: 15 }}>Mensajes en Vivo</Typography>} />
               {unreadCount > 0 && <Chip label={unreadCount} size="small" color="error" />}
+            </ListItemButton>
+          </ListItem>
+
+          <ListItem disablePadding sx={{ mb: 1 }}>
+            <ListItemButton
+              onClick={() => {
+                onOpenAccountSettings?.();
+                setMobileDrawerOpen(false);
+              }}
+              sx={{ borderRadius: 2 }}
+            >
+              <ListItemIcon sx={{ minWidth: 36, color: '#E05D84' }}>
+                <SettingsApplications />
+              </ListItemIcon>
+              <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: 15 }}>Configuración de perfil</Typography>} />
             </ListItemButton>
           </ListItem>
 
