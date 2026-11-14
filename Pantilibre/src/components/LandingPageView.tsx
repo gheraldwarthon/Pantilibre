@@ -154,7 +154,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               textShadow: '0 2px 16px rgba(244, 114, 182, 0.25)',
             }}
           >
-            El Santuario Privado del Fetiche, la Lencería y la Sensualidad
+            Mercado de Ropa Íntima Femenina Recién Usada
           </Typography>
 
           <Typography
