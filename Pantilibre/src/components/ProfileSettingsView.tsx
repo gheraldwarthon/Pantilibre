@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -27,7 +27,8 @@ import {
   WorkspacePremium
 } from '@mui/icons-material';
 import type { UserProfile } from '../types';
-import { fetchMyProfile, updateMyProfile } from '../services/dataService';
+import { fetchMyProfile, updateMyProfile, updateMyCreatorProfile, uploadCreatorCoverFile } from '../services/dataService';
+import { supabase } from '../services/supabaseClient';
 
 interface ProfileSettingsViewProps {
   user: UserProfile;
@@ -47,10 +48,68 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
   const [name, setName] = useState(user.name);
   const [username, setUsername] = useState(user.username);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar);
+  const [bio, setBio] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
+  const [coverPreview, setCoverPreview] = useState('');
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ severity: 'error' | 'success'; text: string } | null>(null);
 
   const roleLabel = user.role === 'admin' ? 'Administrador' : user.role === 'creator' ? 'Vendedora' : 'Fan';
+
+  useEffect(() => {
+    if (user.role !== 'creator') return;
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('creators')
+          .select('bio, cover_url, social_links')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!mounted || !data) return;
+        setBio(data.bio || '');
+        setCoverUrl(data.cover_url || '');
+        setCoverPreview(data.cover_url || '');
+        setSocialLinks(data.social_links || {});
+      } catch {
+        // Ignorar: los campos quedarán vacíos para editar.
+      }
+    })();
+    return () => { mounted = false; };
+  }, [user.id, user.role]);
+
+  const socialFields: { key: string; label: string; placeholder: string }[] = [
+    { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/tu-usuario' },
+    { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@tu-usuario' },
+    { key: 'twitter', label: 'X / Twitter', placeholder: 'https://x.com/tu-usuario' },
+    { key: 'onlyfans', label: 'OnlyFans', placeholder: 'https://onlyfans.com/tu-usuario' },
+    { key: 'web', label: 'Sitio web', placeholder: 'https://tu-sitio.com' }
+  ];
+
+  const handleCoverUpload = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setFeedback({ severity: 'error', text: 'Elige un archivo de imagen.' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFeedback({ severity: 'error', text: 'La imagen no debe superar los 5 MB.' });
+      return;
+    }
+    setSaving(true);
+    setFeedback(null);
+    try {
+      const url = await uploadCreatorCoverFile(file);
+      setCoverUrl(url);
+      setCoverPreview(url);
+      setFeedback({ severity: 'success', text: 'Portada subida. Guarda los cambios para publicarla.' });
+    } catch {
+      setFeedback({ severity: 'error', text: 'No se pudo subir la portada.' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     const trimmedName = name.trim();
@@ -79,6 +138,13 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
         username: trimmedUsername,
         avatarUrl: avatarUrl.trim()
       });
+      if (user.role === 'creator') {
+        await updateMyCreatorProfile({
+          bio: bio.trim(),
+          coverImage: coverUrl.trim(),
+          socialLinks
+        });
+      }
       const fresh = await fetchMyProfile();
       onUpdated(fresh);
       setFeedback({ severity: 'success', text: '¡Cambios guardados con éxito!' });
@@ -249,6 +315,80 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
             </Box>
           </CardContent>
         </Card>
+
+        {/* Ficha de vendedora */}
+        {user.role === 'creator' && (
+          <Card sx={{ borderRadius: 4, border: '1.5px solid #FCE7F3', boxShadow: '0 8px 28px rgba(224, 93, 132, 0.10)' }}>
+            <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                <WorkspacePremium sx={{ color: '#BE185D', fontSize: 20 }} />
+                <Typography sx={{ fontWeight: 900, color: '#2D1822', fontSize: 16 }}>Tu ficha de vendedora</Typography>
+              </Box>
+
+              <TextField
+                fullWidth size="small" label="Biografía" value={bio}
+                onChange={e => setBio(e.target.value)}
+                multiline minRows={3}
+                placeholder="Cuenta quién eres, qué ofreces y por qué destacas..."
+                sx={{ bgcolor: '#FFFFFF', '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+              />
+
+              <Box>
+                <Typography variant="caption" sx={{ color: '#7A5868', display: 'block', mb: 0.5 }}>
+                  Foto de portada
+                </Typography>
+                {coverPreview && (
+                  <Box
+                    component="img"
+                    src={coverPreview}
+                    alt="Portada"
+                    sx={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 3, mb: 1.5, border: '1px solid #FCE7F3' }}
+                  />
+                )}
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  disabled={saving}
+                  sx={{ borderRadius: 3, fontWeight: 800, textTransform: 'none' }}
+                >
+                  Subir portada
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={e => void handleCoverUpload(e.target.files?.[0])}
+                  />
+                </Button>
+                <TextField
+                  fullWidth size="small" label="...o pega una URL de imagen" value={coverUrl}
+                  onChange={e => { setCoverUrl(e.target.value); setCoverPreview(e.target.value); }}
+                  placeholder="https://..."
+                  sx={{ bgcolor: '#FFFFFF', mt: 1.5, '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                />
+              </Box>
+
+              <Divider sx={{ borderColor: '#FCE7F3' }} />
+
+              <Box>
+                <Typography sx={{ fontWeight: 800, color: '#2D1822', fontSize: 14, mb: 1 }}>
+                  Redes sociales
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  {socialFields.map(field => (
+                    <TextField
+                      key={field.key}
+                      fullWidth size="small" label={field.label} value={socialLinks[field.key] || ''}
+                      onChange={e => setSocialLinks(prev => ({ ...prev, [field.key]: e.target.value }))}
+                      placeholder={field.placeholder}
+                      sx={{ bgcolor: '#FFFFFF', '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Preferences */}
         <Card sx={{ borderRadius: 4, border: '1.5px solid #FCE7F3', boxShadow: '0 8px 28px rgba(224, 93, 132, 0.10)' }}>

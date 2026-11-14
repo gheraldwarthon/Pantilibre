@@ -46,6 +46,7 @@ export interface DbCreator extends DbProfile {
   shoe_size: string | null;
   measurements: string | null;
   favorite_perfume: string | null;
+  social_links: Record<string, string> | null;
 }
 
 export interface DbPost {
@@ -142,6 +143,7 @@ export function mapCreator(db: DbCreator, extra?: Partial<Creator>): Creator {
     shoeSize: db.shoe_size || undefined,
     measurements: db.measurements || undefined,
     favoritePerfume: db.favorite_perfume || undefined,
+    socialLinks: db.social_links || undefined,
     ...extra
   };
 }
@@ -568,4 +570,35 @@ export async function fetchAllProfiles(): Promise<DbProfile[]> {
   const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return data as unknown as DbProfile[];
+}
+
+export async function updateMyCreatorProfile(changes: {
+  bio?: string;
+  coverImage?: string;
+  socialLinks?: Record<string, string>;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Inicia sesión para editar tu perfil');
+  const update: Record<string, unknown> = {};
+  if (changes.bio !== undefined) update.bio = changes.bio;
+  if (changes.coverImage !== undefined) update.cover_url = changes.coverImage;
+  if (changes.socialLinks !== undefined) update.social_links = changes.socialLinks;
+  if (Object.keys(update).length === 0) return;
+  const { error } = await supabase.from('creators').update(update).eq('id', user.id);
+  if (error) throw error;
+}
+
+export async function uploadCreatorCoverFile(file: File): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Inicia sesión para subir archivos');
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const safeExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? ext : 'jpg';
+  const path = `${user.id}/${Date.now()}.${safeExt}`;
+  const { error } = await supabase.storage.from('creator-media').upload(path, file, {
+    cacheControl: '3600',
+    upsert: true
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from('creator-media').getPublicUrl(path);
+  return data.publicUrl;
 }

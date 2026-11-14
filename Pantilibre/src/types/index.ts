@@ -56,6 +56,7 @@ export interface Creator {
   featured: boolean;
   joinedDate: string;
   socialQuote?: string;
+  socialLinks?: Record<string, string>;
   height?: string;
   shoeSize?: string;
   measurements?: string;
