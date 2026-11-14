@@ -32,7 +32,7 @@ import {
   getOrCreateConversation,
   sendMessage as sendDbMessage
 } from './services/dataService';
-import { restoreSession, signOut } from './services/authService';
+import { getFriendlyAuthError, restoreSession, signOut } from './services/authService';
 import { supabase } from './services/supabaseClient';
 
 import type {
@@ -122,8 +122,11 @@ export default function App() {
       try {
         const restored = await restoreSession();
         if (mounted) setUser(restored);
-      } catch {
-        if (mounted) setUser(null);
+      } catch (err) {
+        if (mounted) {
+          setUser(null);
+          showToast(getFriendlyAuthError(err instanceof Error ? err.message : 'Error de autenticación'), 'error');
+        }
       } finally {
         if (mounted) setBootLoading(false);
       }

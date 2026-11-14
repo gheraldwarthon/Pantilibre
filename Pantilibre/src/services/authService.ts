@@ -6,6 +6,8 @@ export function getFriendlyAuthError(raw: string): string {
   if (raw.includes('weak_password') || raw.toLowerCase().includes('weak')) {
     return 'La contraseña es demasiado débil. Usa al menos 8 caracteres mezclando mayúsculas, minúsculas, números y símbolos (ej. Panti!2026).';
   }
+  if (raw.includes('Perfil no encontrado')) return 'Tu cuenta existe, pero falta su perfil. Contacta con el administrador para recuperar el acceso.';
+  if (raw.includes('Email not confirmed')) return 'Debes confirmar tu correo antes de iniciar sesión.';
   if (raw.includes('Invalid login credentials')) return 'Correo o contraseña incorrectos.';
   if (raw.includes('already registered') || raw.includes('already been registered')) return 'Ese correo ya está registrado. Inicia sesión.';
   if (raw.includes('duplicate key') || raw.includes('unique')) return 'Ese nombre de usuario ya está en uso. Elige otro.';
@@ -41,8 +43,9 @@ export async function signUp(email: string, password: string, username: string, 
 }
 
 export async function signIn(email: string, password: string): Promise<UserProfile> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
   if (error) throw error;
+  if (!data.session || !data.user) throw new Error('No autenticado');
   return fetchMyProfile();
 }
 
@@ -52,7 +55,8 @@ export async function signOut(): Promise<void> {
 }
 
 export async function restoreSession(): Promise<UserProfile | null> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) throw error;
   if (!session?.user) return null;
   return fetchMyProfile();
 }

@@ -411,7 +411,8 @@ export async function fetchMyNotifications(): Promise<AppNotification[]> {
 }
 
 export async function fetchMyProfile(): Promise<UserProfile> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
   if (!user) throw new Error('No autenticado');
   const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
   if (error) throw error;
@@ -423,6 +424,8 @@ export async function fetchMyProfile(): Promise<UserProfile> {
     supabase.from('gallery_unlocks').select('gallery_id').eq('user_id', user.id),
     supabase.from('post_likes').select('post_id').eq('user_id', user.id)
   ]);
+  const relatedError = subsRes.error || unlocksRes.error || likesRes.error;
+  if (relatedError) throw new Error('No se pudieron cargar los datos de tu cuenta. Inténtalo de nuevo.');
   mapped.followingCreatorIds = (subsRes.data || []).map(s => s.creator_id);
   mapped.favoriteCreatorIds = mapped.followingCreatorIds;
   mapped.unlockedGalleries = (unlocksRes.data || []).map(u => u.gallery_id);
