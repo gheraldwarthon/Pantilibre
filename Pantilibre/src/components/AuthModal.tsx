@@ -51,7 +51,7 @@ interface AuthModalProps {
   initialAuthMode?: 'login' | 'register';
 }
 
-type ModalTab = 'login' | 'register' | 'account' | 'forgot' | 'reset' | 'verify';
+type ModalTab = 'login' | 'register' | 'account' | 'forgot' | 'reset' | 'verify' | 'confirm';
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
@@ -72,6 +72,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ severity: 'error' | 'success'; text: string } | null>(null);
   const [emailStatus, setEmailStatus] = useState<{ email: string; confirmed: boolean } | null>(null);
+  const [pendingConfirmEmail, setPendingConfirmEmail] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -141,9 +142,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setFeedback(null);
     try {
       if (modalTab === 'register') {
-        const user = await signUp(emailTrimmed, password, username.trim(), asCreator);
-        onLoginAs(user);
-        onClose();
+        const result = await signUp(emailTrimmed, password, username.trim(), asCreator);
+        if (result.needsEmailConfirmation) {
+          setPendingConfirmEmail(emailTrimmed);
+          setModalTab('confirm');
+          setFeedback(null);
+        } else if (result.user) {
+          onLoginAs(result.user);
+          onClose();
+        }
+      } else if (modalTab === 'confirm') {
+        if (pendingConfirmEmail) {
+          await resendConfirmationEmail(pendingConfirmEmail);
+          setFeedback({ severity: 'success', text: 'Correo de confirmación reenviado. Revisa tu bandeja de entrada (y spam).' });
+        }
       } else if (modalTab === 'login') {
         const user = await signIn(emailTrimmed, password);
         onLoginAs(user);
@@ -180,7 +192,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const tabValue = (modalTab === 'account' || modalTab === 'verify') ? 'account'
-    : (modalTab === 'forgot' || modalTab === 'reset') ? 'login'
+    : (modalTab === 'forgot' || modalTab === 'reset' || modalTab === 'confirm') ? 'login'
     : modalTab;
 
   return (
@@ -323,7 +335,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </Box>
       )}
 
-      {modalTab !== 'account' && modalTab !== 'verify' && (
+      {modalTab === 'confirm' && (
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, px: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <EmailIcon sx={{ color: '#BE185D', fontSize: 28 }} />
+            <Typography variant="h6" sx={{ fontWeight: 900, color: '#2D1822' }}>
+              Confirma tu correo
+            </Typography>
+          </Box>
+          <Alert severity="success" sx={{ borderRadius: 2.5 }}>
+            ¡Cuenta creada! Te enviamos un enlace de confirmación a <strong>{pendingConfirmEmail || 'tu correo'}</strong>.
+            Revisa tu bandeja de entrada (y la carpeta de spam) y haz clic en el enlace para activar tu cuenta.
+          </Alert>
+          {feedback && (
+            <Alert severity={feedback.severity} sx={{ py: 0.5, fontSize: 11, borderRadius: 2 }}>
+              {feedback.text}
+            </Alert>
+          )}
+          <Button
+            type="submit" variant="contained" disabled={busy}
+            startIcon={<EmailIcon />}
+            sx={{ py: 1.2, borderRadius: 3, fontWeight: 800, bgcolor: '#E05D84', color: '#FFFFFF', '&:hover': { bgcolor: '#BE185D' } }}
+          >
+            {busy ? 'Enviando...' : 'Reenviar correo de confirmación'}
+          </Button>
+          <Button type="button" onClick={handleBackToLogin} sx={{ textTransform: 'none', fontWeight: 700 }}>
+            Ya confirmé mi correo, iniciar sesión
+          </Button>
+        </Box>
+      )}
+
+      {modalTab !== 'account' && modalTab !== 'verify' && modalTab !== 'confirm' && (
         <DialogContent sx={{ px: 0 }}>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {modalTab !== 'reset' && (

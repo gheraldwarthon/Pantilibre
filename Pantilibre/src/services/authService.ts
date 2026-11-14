@@ -12,22 +12,32 @@ export function getFriendlyAuthError(raw: string): string {
   if (raw.includes('Password')) return 'La contraseña debe tener al menos 6 caracteres.';
   if (raw.includes('rate limit') || raw.includes('rate_limit')) return 'Demasiados intentos. Espera un momento e inténtalo de nuevo.';
   if (raw.includes('Failed to fetch') || raw.toLowerCase().includes('network')) return 'No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.';
-  if (raw.includes('Cuenta creada.')) return 'La cuenta se creó, pero no se pudo iniciar la sesión automáticamente. Intenta iniciar sesión.';
+  if (raw.includes('Cuenta creada.') || raw.includes('needsEmailConfirmation')) return 'Se creó tu cuenta. Revisa tu correo para confirmarla antes de iniciar sesión.';
   return 'No se pudo completar la autenticación. Revisa tus datos e inténtalo de nuevo.';
 }
 
-export async function signUp(email: string, password: string, username: string, asCreator: boolean): Promise<UserProfile> {
+export interface SignUpResult {
+  needsEmailConfirmation: boolean;
+  user: UserProfile | null;
+}
+
+export async function signUp(email: string, password: string, username: string, asCreator: boolean): Promise<SignUpResult> {
+  const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username: username.trim().toLowerCase(), account_type: asCreator ? 'creator' : 'fan' } }
+    options: {
+      data: { username: username.trim().toLowerCase(), account_type: asCreator ? 'creator' : 'fan' },
+      ...(redirectTo ? { emailRedirectTo: redirectTo } : {})
+    }
   });
   if (error) throw error;
   if (!data.user) throw new Error('No se pudo crear la cuenta');
   if (!data.session) {
-    throw new Error('Cuenta creada. Inicia sesión para continuar.');
+    return { needsEmailConfirmation: true, user: null };
   }
-  return fetchMyProfile();
+  const profile = await fetchMyProfile();
+  return { needsEmailConfirmation: false, user: profile };
 }
 
 export async function signIn(email: string, password: string): Promise<UserProfile> {
