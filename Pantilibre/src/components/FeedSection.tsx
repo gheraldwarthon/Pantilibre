@@ -24,7 +24,15 @@ import {
   Verified,
   Send,
   Lock,
-  Speed
+  Speed,
+  AddPhotoAlternate,
+  AutoAwesome,
+  FilterList,
+  LocalOffer,
+  FiberNew,
+  Star,
+  Checkroom,
+  SelfImprovement
 } from '@mui/icons-material';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import { formatRelativeTime, getFeedFlankPhotos, type FeedFlankPhotoItem } from '../utils/platformLogic';
@@ -187,6 +195,7 @@ export const FeedSection: React.FC<FeedSectionProps> = ({
   onToggleDataSaver
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'following' | 'vip' | 'media'>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [tipModalData, setTipModalData] = useState<{ creatorId: string; creatorName: string } | null>(null);
@@ -221,15 +230,10 @@ export const FeedSection: React.FC<FeedSectionProps> = ({
   };
 
   const filteredPosts = posts.filter(post => {
-    if (activeTab === 'following') {
-      return user.followingCreatorIds.includes(post.creatorId);
-    }
-    if (activeTab === 'vip') {
-      return post.creatorBadge === 'VIP' || post.creatorBadge === 'SUPER_VIP' || post.creatorBadge === 'DIAMOND';
-    }
-    if (activeTab === 'media') {
-      return post.imageUrls.length > 0;
-    }
+    if (activeTab === 'following' && !user.followingCreatorIds.includes(post.creatorId)) return false;
+    if (activeTab === 'vip' && !(post.creatorBadge === 'VIP' || post.creatorBadge === 'SUPER_VIP' || post.creatorBadge === 'DIAMOND')) return false;
+    if (activeTab === 'media' && post.imageUrls.length === 0) return false;
+    if (activeCategory !== 'all' && post.category !== activeCategory) return false;
     return true;
   });
 
@@ -387,112 +391,202 @@ export const FeedSection: React.FC<FeedSectionProps> = ({
             </Box>
           )}
 
-          {/* Segmented Filter Control */}
-          <Box
-            sx={{
-              bgcolor: '#FFFFFF',
-              p: 0.8,
-              borderRadius: 3.5,
-              border: '1px solid #FCE7F3',
-              boxShadow: '0 2px 10px rgba(224, 93, 132, 0.05)',
-              display: 'flex',
-              gap: 1,
-              overflowX: 'auto',
-              WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none',
-              '&::-webkit-scrollbar': { display: 'none' }
-            }}
-          >
-            {[
-              { id: 'all', label: 'Todo el Muro' },
-              { id: 'following', label: 'Mis Vendedoras' },
-              { id: 'vip', label: 'Exclusivo VIP' },
-              { id: 'media', label: 'Fotos & Videos' }
-            ].map(tab => (
-              <Button
-                key={tab.id}
-                size="small"
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                sx={{
-                  flex: '1 0 auto',
-                  borderRadius: 2.5,
-                  py: 0.8,
-                  px: 2,
-                  fontWeight: 800,
-                  fontSize: 12,
-                  textTransform: 'none',
-                  bgcolor: activeTab === tab.id ? '#E05D84' : 'transparent',
-                  color: activeTab === tab.id ? '#FFFFFF' : '#7A5868',
-                  boxShadow: activeTab === tab.id ? '0 2px 8px rgba(224, 93, 132, 0.3)' : 'none',
-                  '&:hover': {
-                    bgcolor: activeTab === tab.id ? '#BE185D' : '#FFF0F5',
-                  },
-                }}
-              >
-                {tab.label}
-              </Button>
-            ))}
+          {/* ===== FILTROS PRINCIPALES ===== */}
+          <Box sx={{ bgcolor: '#FFFFFF', borderRadius: 4, border: '1px solid #FCE7F3', boxShadow: '0 2px 12px rgba(224,93,132,0.06)', overflow: 'hidden' }}>
+            {/* Tabs de tipo */}
+            <Box sx={{ display: 'flex', gap: 0, borderBottom: '1px solid #FFF0F5' }}>
+              {[
+                { id: 'all', label: 'Todo', icon: <AutoAwesome sx={{ fontSize: 14 }} /> },
+                { id: 'following', label: 'Mis Vendedoras', icon: <Star sx={{ fontSize: 14 }} /> },
+                { id: 'vip', label: 'VIP Exclusivo', icon: <LocalOffer sx={{ fontSize: 14 }} /> },
+                { id: 'media', label: 'Fotos & Sets', icon: <AddPhotoAlternate sx={{ fontSize: 14 }} /> }
+              ].map(tab => (
+                <Button
+                  key={tab.id}
+                  size="small"
+                  startIcon={tab.icon}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  sx={{
+                    flex: 1,
+                    borderRadius: 0,
+                    py: 1.1,
+                    px: { xs: 0.5, sm: 1.5 },
+                    fontWeight: 800,
+                    fontSize: { xs: 10.5, sm: 12 },
+                    textTransform: 'none',
+                    bgcolor: activeTab === tab.id ? '#FFF0F5' : 'transparent',
+                    color: activeTab === tab.id ? '#BE185D' : '#9D7387',
+                    borderBottom: activeTab === tab.id ? '2.5px solid #E05D84' : '2.5px solid transparent',
+                    '&:hover': { bgcolor: '#FFF5F8', color: '#BE185D' },
+                    gap: { xs: 0, sm: 0.5 },
+                    '& .MuiButton-startIcon': { display: { xs: 'none', sm: 'flex' }, mr: 0 }
+                  }}
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </Box>
+
+            {/* Chips de categoría */}
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 0.8,
+                px: 1.5,
+                py: 1.2,
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': { display: 'none' },
+                alignItems: 'center'
+              }}
+            >
+              <FilterList sx={{ fontSize: 15, color: '#BE185D', flexShrink: 0, mr: 0.3 }} />
+              {[
+                { id: 'all', label: 'Todos', color: '#BE185D', bg: '#FFF0F5' },
+                { id: 'lingerie', label: 'Lencería', color: '#9D174D', bg: '#FCE7F3' },
+                { id: 'used_clothes', label: 'Ropa Usada', color: '#7C3AED', bg: '#EDE9FE' },
+                { id: 'feet', label: 'Pies', color: '#D97706', bg: '#FEF3C7' },
+                { id: 'latex', label: 'Látex', color: '#1D4ED8', bg: '#DBEAFE' },
+                { id: 'cosplay', label: 'Cosplay', color: '#059669', bg: '#D1FAE5' },
+                { id: 'gorditas', label: 'Curvy', color: '#BE185D', bg: '#FCE7F3' },
+                { id: 'mature', label: 'Maduras', color: '#B45309', bg: '#FEF3C7' },
+                { id: 'teens', label: 'Jóvenes', color: '#0F766E', bg: '#CCFBF1' },
+              ].map(cat => (
+                <Chip
+                  key={cat.id}
+                  label={cat.label}
+                  size="small"
+                  onClick={() => setActiveCategory(cat.id)}
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: 11,
+                    height: 26,
+                    flexShrink: 0,
+                    cursor: 'pointer',
+                    bgcolor: activeCategory === cat.id ? cat.color : cat.bg,
+                    color: activeCategory === cat.id ? '#FFFFFF' : cat.color,
+                    border: `1.5px solid ${activeCategory === cat.id ? cat.color : 'transparent'}`,
+                    transition: 'all 0.15s ease',
+                    '&:hover': { bgcolor: cat.color, color: '#FFF', transform: 'translateY(-1px)' }
+                  }}
+                />
+              ))}
+            </Box>
           </Box>
 
-          {/* Quick Draft for User Interaction */}
-          <Card
-            elevation={0}
-            sx={{
-              bgcolor: '#FFFFFF',
-              border: '1px solid #FCE7F3',
-              borderRadius: 4,
-              p: 2,
-              boxShadow: '0 2px 12px rgba(224, 93, 132, 0.05)'
-            }}
-          >
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-              <Avatar
-                src={getOptimizedImageUrl(user.avatar, user.dataSaverMode, 'avatar')}
-                sx={{ width: 40, height: 40, border: '1.5px solid #FBCFE8' }}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Pregunta a las vendedoras o pide una prenda personalizada..."
-                value={newPostText}
-                onChange={e => setNewPostText(e.target.value)}
-                sx={{
-                  bgcolor: '#FFF8FA',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    fontSize: 13,
-                    '& fieldset': { borderColor: '#FCE7F3' }
-                  }
-                }}
-              />
-              <Button
-                variant="contained"
-                disabled={!newPostText.trim()}
-                onClick={() => {
-                  setNewPostSuccess(true);
-                  setNewPostText('');
-                  setTimeout(() => setNewPostSuccess(false), 2500);
-                }}
-                sx={{
-                  bgcolor: '#BE185D',
-                  color: '#FFF',
-                  fontWeight: 800,
-                  borderRadius: 2.5,
-                  px: 2,
-                  minWidth: 42,
-                  textTransform: 'none',
-                  '&:hover': { bgcolor: '#9D174D' }
-                }}
-              >
-                <Send sx={{ fontSize: 16 }} />
-              </Button>
-            </Box>
-            {newPostSuccess && (
-              <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, mt: 1, display: 'block' }}>
-                ✓ Petición enviada al muro de creadoras. Te responderán al DM.
-              </Typography>
-            )}
-          </Card>
+          {/* ===== COMPOSER CARD ===== */}
+          {user.role === 'creator' || user.sellerTier ? (
+            /* Composer para vendedoras */
+            <Card elevation={0} sx={{ bgcolor: '#FFFFFF', border: '1.5px solid #FBCFE8', borderRadius: 4, overflow: 'hidden', boxShadow: '0 4px 18px rgba(224,93,132,0.08)' }}>
+              <Box sx={{ background: 'linear-gradient(135deg, #FFF0F5 0%, #FEF3C7 100%)', px: 2.5, pt: 2, pb: 1.5, borderBottom: '1px solid #FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Avatar src={getOptimizedImageUrl(user.avatar, user.dataSaverMode, 'avatar')} sx={{ width: 42, height: 42, border: '2.5px solid #E05D84' }} />
+                  <Box>
+                    <Typography sx={{ fontWeight: 900, color: '#2D1822', fontSize: 14, lineHeight: 1.2 }}>
+                      {user.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#BE185D', fontWeight: 700, fontSize: 11 }}>
+                      {user.sellerTier === 'vip' ? 'Vendedora VIP' : 'Vendedora FREE'} · {user.photoLimit !== null ? `${user.photoLimit} fotos máx.` : 'fotos ilimitadas'}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Chip
+                  icon={<AutoAwesome sx={{ fontSize: 13, color: '#8A6D1E !important' }} />}
+                  label={user.sellerTier === 'vip' ? 'VIP' : 'FREE'}
+                  size="small"
+                  sx={{ bgcolor: user.sellerTier === 'vip' ? '#D4AF37' : '#FFF0F5', color: user.sellerTier === 'vip' ? '#2D1822' : '#BE185D', fontWeight: 900, fontSize: 10, height: 22 }}
+                />
+              </Box>
+              <Box sx={{ p: 2, display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Comparte tu prenda, set de fotos o mensaje secreto..."
+                  value={newPostText}
+                  onChange={e => setNewPostText(e.target.value)}
+                  sx={{
+                    bgcolor: '#FFF8FA',
+                    '& .MuiOutlinedInput-root': { borderRadius: 3, fontSize: 13, '& fieldset': { borderColor: '#FCE7F3' } }
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  disabled={!newPostText.trim()}
+                  onClick={() => { setNewPostSuccess(true); setNewPostText(''); setTimeout(() => setNewPostSuccess(false), 2500); }}
+                  sx={{ bgcolor: '#E05D84', color: '#FFF', fontWeight: 800, borderRadius: 2.5, px: 2, minWidth: 42, textTransform: 'none', '&:hover': { bgcolor: '#BE185D' } }}
+                >
+                  <Send sx={{ fontSize: 16 }} />
+                </Button>
+              </Box>
+              {/* Accesos rápidos de publicación */}
+              <Box sx={{ px: 2, pb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {[
+                  { icon: <AddPhotoAlternate sx={{ fontSize: 14 }} />, label: 'Subir fotos', color: '#BE185D', bg: '#FFF0F5' },
+                  { icon: <Checkroom sx={{ fontSize: 14 }} />, label: 'Prenda usada', color: '#7C3AED', bg: '#EDE9FE' },
+                  { icon: <FiberNew sx={{ fontSize: 14 }} />, label: 'Novedad', color: '#059669', bg: '#D1FAE5' },
+                  { icon: <Lock sx={{ fontSize: 14 }} />, label: 'Contenido VIP', color: '#D97706', bg: '#FEF3C7' },
+                  { icon: <SelfImprovement sx={{ fontSize: 14 }} />, label: 'Set íntimo', color: '#E05D84', bg: '#FCE7F3' },
+                ].map(action => (
+                  <Chip
+                    key={action.label}
+                    icon={React.cloneElement(action.icon, { sx: { fontSize: 14, color: `${action.color} !important` } })}
+                    label={action.label}
+                    size="small"
+                    onClick={() => setNewPostText(prev => prev ? `${prev} #${action.label.toLowerCase().replace(/ /g, '_')}` : `#${action.label.toLowerCase().replace(/ /g, '_')} `)}
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: 11,
+                      height: 26,
+                      bgcolor: action.bg,
+                      color: action.color,
+                      cursor: 'pointer',
+                      border: `1px solid ${action.color}22`,
+                      transition: 'all 0.15s',
+                      '&:hover': { bgcolor: action.color, color: '#FFF', transform: 'translateY(-1px)' }
+                    }}
+                  />
+                ))}
+              </Box>
+              {newPostSuccess && (
+                <Box sx={{ px: 2, pb: 2 }}>
+                  <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700 }}>
+                    Publicado en el muro. Tus fans ya pueden verlo.
+                  </Typography>
+                </Box>
+              )}
+            </Card>
+          ) : (
+            /* Composer simplificado para fans */
+            <Card elevation={0} sx={{ bgcolor: '#FFFFFF', border: '1px solid #FCE7F3', borderRadius: 4, p: 2, boxShadow: '0 2px 12px rgba(224,93,132,0.05)' }}>
+              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                <Avatar src={getOptimizedImageUrl(user.avatar, user.dataSaverMode, 'avatar')} sx={{ width: 40, height: 40, border: '1.5px solid #FBCFE8' }} />
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Pide una prenda personalizada o escribe a tus vendedoras favoritas..."
+                  value={newPostText}
+                  onChange={e => setNewPostText(e.target.value)}
+                  sx={{
+                    bgcolor: '#FFF8FA',
+                    '& .MuiOutlinedInput-root': { borderRadius: 3, fontSize: 13, '& fieldset': { borderColor: '#FCE7F3' } }
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  disabled={!newPostText.trim()}
+                  onClick={() => { setNewPostSuccess(true); setNewPostText(''); setTimeout(() => setNewPostSuccess(false), 2500); }}
+                  sx={{ bgcolor: '#BE185D', color: '#FFF', fontWeight: 800, borderRadius: 2.5, px: 2, minWidth: 42, textTransform: 'none', '&:hover': { bgcolor: '#9D174D' } }}
+                >
+                  <Send sx={{ fontSize: 16 }} />
+                </Button>
+              </Box>
+              {newPostSuccess && (
+                <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, mt: 1, display: 'block' }}>
+                  Petición enviada. Las vendedoras te responderán al chat privado.
+                </Typography>
+              )}
+            </Card>
+          )}
 
           {/* Posts Wall Stream */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
