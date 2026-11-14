@@ -10,6 +10,7 @@ import {
   Avatar,
   Button,
   Chip,
+  TextField,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -21,13 +22,13 @@ import {
   ChatBubble,
   MonetizationOn,
   Verified,
+  Send,
   Lock,
   Speed,
   AddPhotoAlternate,
   AutoAwesome,
   FilterList,
   LocalOffer,
-  FiberNew,
   Star
 } from '@mui/icons-material';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
@@ -194,6 +195,12 @@ export const FeedSection: React.FC<FeedSectionProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'following' | 'vip' | 'media'>('all');
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [tipModalData, setTipModalData] = useState<{ creatorId: string; creatorName: string } | null>(null);
+  const [selectedTipAmount, setSelectedTipAmount] = useState<number>(50);
+  const [tipMessage, setTipMessage] = useState<string>('');
+  const [tipSentFeedback, setTipSentFeedback] = useState(false);
 
   const toggleComments = (postId: string) => {
     setExpandedComments(prev => ({ ...prev, [postId]: !prev[postId] }));
