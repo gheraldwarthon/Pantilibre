@@ -79,3 +79,28 @@ export async function restoreSession(): Promise<UserProfile | null> {
   if (!session?.user) return null;
   return fetchMyProfile();
 }
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    email,
+    redirectTo ? { redirectTo } : undefined
+  );
+  if (error) throw error;
+}
+
+export async function changePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
+export async function resendConfirmationEmail(email: string): Promise<void> {
+  const { error } = await supabase.auth.resend({ type: 'signup', email });
+  if (error) throw error;
+}
+
+export async function getCurrentAuthStatus(): Promise<{ email: string; emailConfirmed: boolean } | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  return { email: user.email ?? '', emailConfirmed: Boolean(user.email_confirmed_at) };
+}

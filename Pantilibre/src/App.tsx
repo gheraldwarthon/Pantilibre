@@ -71,7 +71,7 @@ export default function App() {
   // Modals & overlays
   const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalTab, setAuthModalTab] = useState<'login' | 'register' | 'account'>('login');
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'register' | 'account' | 'reset'>('login');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -145,8 +145,12 @@ export default function App() {
 
   // Keep profile fresh on auth changes
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setAuthModalTab('reset');
+          setIsAuthModalOpen(true);
+        }
         if (!session?.user) {
           setUser(null);
           setNotifications([]);
@@ -182,7 +186,7 @@ export default function App() {
     action();
   };
 
-  const handleOpenAuth = (tab: 'login' | 'register' | 'account' = 'login') => {
+  const handleOpenAuth = (tab: 'login' | 'register' | 'account' | 'reset' = 'login') => {
     setAuthModalTab(tab);
     setIsAuthModalOpen(true);
   };
